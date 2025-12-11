@@ -30,6 +30,11 @@ async function run() {
     const loanLinkDB = client.db("loanLinkDB");
     const loansCollection = loanLinkDB.collection("loans");
 
+    app.get("/availableLoans", async (req, res) => {
+      const cursor = loansCollection.find().limit(6);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     app.get("/loans", async (req, res) => {
       const cursor = loansCollection.find();
       const result = await cursor.toArray();
