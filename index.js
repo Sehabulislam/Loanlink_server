@@ -10,8 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-const uri =
-  `mongodb+srv://${process.env.VITE_USER}:${process.env.VITE_PASS}@cluster0.cjsthkf.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.VITE_USER}:${process.env.VITE_PASS}@cluster0.cjsthkf.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -29,7 +28,19 @@ async function run() {
     await client.connect();
     const loanLinkDB = client.db("loanLinkDB");
     const loansCollection = loanLinkDB.collection("loans");
-
+    const usersCollection = loanLinkDB.collection("users");
+    //----------------------users related api --------------------
+    app.get("/users", async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.post('/users',async(req,res)=>{
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result)
+    })
+    //----------------------loan related api --------------------
     app.get("/availableLoans", async (req, res) => {
       const cursor = loansCollection.find().limit(6);
       const result = await cursor.toArray();
@@ -46,12 +57,11 @@ async function run() {
       const result = await loansCollection.findOne(query);
       res.send(result);
     });
-
-    app.post("/loans",async(req,res)=>{
-        const loan = req.body;
-        const result = await loansCollection.insertOne(loan);
-        res.send(result);
-    })
+    app.post("/loans", async (req, res) => {
+      const loan = req.body;
+      const result = await loansCollection.insertOne(loan);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
