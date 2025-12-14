@@ -29,17 +29,34 @@ async function run() {
     const loanLinkDB = client.db("loanLinkDB");
     const loansCollection = loanLinkDB.collection("loans");
     const usersCollection = loanLinkDB.collection("users");
+    const applyLoanCollection = loanLinkDB.collection("applyLone");
     //----------------------users related api --------------------
     app.get("/users", async (req, res) => {
       const cursor = usersCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
-    app.post('/users',async(req,res)=>{
-      const user = req.body;
-      const result = await usersCollection.insertOne(user);
-      res.send(result)
+    app.get('/users/:email/role',async(req,res)=>{
+      const email = req.params.email;
+      const query = {email};
+      const user = await usersCollection.findOne(query);
+      res.send({role : user?.role || 'user'})
     })
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      if (!user.role) {
+        user.role = "borrower";
+      }
+      user.createdAt = new Date();
+
+      const email = user.email;
+      const userExists = await usersCollection.findOne({ email });
+      if (userExists) {
+        return res.send({ message: "user exists" });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
     //----------------------loan related api --------------------
     app.get("/availableLoans", async (req, res) => {
       const cursor = loansCollection.find().limit(6);
@@ -57,11 +74,14 @@ async function run() {
       const result = await loansCollection.findOne(query);
       res.send(result);
     });
-    app.post("/loans", async (req, res) => {
+    //--------------------apply lone related apis-------------
+    app.post('/applyLoans',async(req,res)=>{
       const loan = req.body;
-      const result = await loansCollection.insertOne(loan);
-      res.send(result);
-    });
+      loan.status = 'pending'
+      loan.applicationFee = 'unpaid'
+      const result = await applyLoanCollection.insertOne(loan);
+      res.send(result)
+    })
 
     await client.db("admin").command({ ping: 1 });
     console.log(
